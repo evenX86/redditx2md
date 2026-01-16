@@ -1,0 +1,61 @@
+# =============================================================================
+# Docker Compose configuration for redditx2md
+# Purpose: Local development and testing with volume mounting
+# =============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final  # Use 'tester' target to run tests in container
+      args:
+        BUILD_DATE: ${BUILD_DATE:-2024-01-01}
+        VERSION: ${VERSION:-1.0.0}
+    image: redditx2md:latest
+    container_name: redditx2md
+
+    # Environment variables (use .env file or override here)
+    environment:
+      - NODE_ENV=production
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+
+    # Volume mounts for persistent output
+    volumes:
+      # Mount local output directory to container
+      - ./output:/usr/src/app/output
+
+    # Resource limits (prevent container from consuming all resources)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    # Restart policy (no restart for CLI tool, change to 'always' for daemon)
+    restart: "no"
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Service for running tests in container
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: tester
+      args:
+        BUILD_DATE: ${BUILD_DATE:-2024-01-01}
+        VERSION: ${VERSION:-1.0.0}
+    image: redditx2md:test
+    container_name: redditx2md-test
+    command: ["npm", "test"]
+    profiles:
+      - test

@@ -1,0 +1,59 @@
+# =============================================================================
+# .dockerignore - Exclude unnecessary files from Docker build context
+# =============================================================================
+
+# Dependencies (will be installed in container)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Output files (generated at runtime)
+output/
+*.md
+!README.md
+
+# Environment files (use Docker secrets or env vars instead)
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Documentation (not needed in image)
+*.md
+!README.md
+docs/
+
+# Test files (excluded from production image)
+tests/
+coverage/
+.nyc_output/
+
+# Docker files
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Other
+*.log
+tmp/
+temp/
+*.tmp
