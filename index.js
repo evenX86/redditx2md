@@ -8,8 +8,7 @@ import 'dotenv/config';
 import {
   REDDIT_CONFIG,
   CUSTOM_USER_AGENT,
-  DEEPSEEK_CONFIG,
-  PROCESSING_CONFIG
+  DEEPSEEK_CONFIG
 } from './lib/constants.js';
 
 /**
@@ -27,7 +26,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Configuration loaded:`);
+  console.log('Configuration loaded:');
   console.log(`  Subreddit: ${REDDIT_CONFIG.DEFAULT_SUBREDDIT}`);
   console.log(`  Time Filter: ${REDDIT_CONFIG.DEFAULT_TIME_FILTER}`);
   console.log(`  Limit: ${REDDIT_CONFIG.DEFAULT_LIMIT}`);
