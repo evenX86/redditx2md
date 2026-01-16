@@ -51,6 +51,10 @@ RUN npm test
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS final
 
+# Set build arguments for metadata
+ARG BUILD_DATE
+ARG VERSION=1.0.0
+
 # Set metadata labels
 LABEL org.opencontainers.image.title="redditx2md"
 LABEL org.opencontainers.image.description="Reddit content fetcher and Markdown converter - Production"
@@ -77,8 +81,8 @@ RUN npm ci --omit=dev && \
     npm cache clean --force
 
 # Copy necessary files from builder stage
-COPY --from=builder --chown=nodejs:nodejs index.js ./
-COPY --from=builder --chown=nodejs:nodejs lib ./lib
+COPY --from=builder --chown=nodejs:nodejs /usr/src/app/index.js ./
+COPY --from=builder --chown=nodejs:nodejs /usr/src/app/lib ./lib
 
 # Create and set permissions for output directory
 RUN mkdir -p /usr/src/app/output && \
