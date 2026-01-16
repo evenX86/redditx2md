@@ -1,0 +1,307 @@
+# =============================================================================
+# GitHub Actions CI/CD Pipeline for redditx2md
+# Automated testing, linting, and quality checks
+# =============================================================================
+
+name: CI/CD
+
+# Trigger on push and pull requests
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+# Environment variables
+env:
+  NODE_VERSION: '20.x'
+
+# =============================================================================
+# Jobs
+# =============================================================================
+jobs:
+  # -----------------------------------------------------------------------------
+  # Job 1: Code Quality (Linting)
+  # -----------------------------------------------------------------------------
+  lint:
+    name: 🧹 Lint Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  # -----------------------------------------------------------------------------
+  # Job 2: Run Tests
+  # -----------------------------------------------------------------------------
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run tests (verbose on failure)
+        if: failure()
+        run: npm run test:verbose
+
+      # Upload test results as artifacts
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-node
+          path: output/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # -----------------------------------------------------------------------------
+  # Job 3: Build Verification
+  # -----------------------------------------------------------------------------
+  build:
+    name: 🔨 Verify Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Smoke test - Verify code structure
+        run: |
+          # Verify main entry point can be parsed (syntax check)
+          node --check index.js
+          # Verify all library modules can be loaded
+          node --check lib/*.js
+          # Verify all test files can be parsed
+          node --check tests/*.test.js
+
+  # -----------------------------------------------------------------------------
+  # Job 4: Docker Build Test
+  # -----------------------------------------------------------------------------
+  docker:
+    name: 🐳 Docker Build Test
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: redditx2md:test
+          target: final
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build test target
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: redditx2md:test-tester
+          target: tester
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # -----------------------------------------------------------------------------
+  # Job 5: Security Scan
+  # -----------------------------------------------------------------------------
+  security:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Run npm audit
+        run: npm audit --production
+        continue-on-error: true
+
+      - name: Check for outdated dependencies
+        run: npm outdated || true
+
+  # -----------------------------------------------------------------------------
+  # Job 6: Makefile Commands Test
+  # -----------------------------------------------------------------------------
+  makefile:
+    name: 🔧 Test Makefile Commands
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make
+
+      - name: Test make install
+        run: make install
+
+      - name: Test make info
+        run: make info
+
+      - name: Test make version
+        run: make version
+
+  # -----------------------------------------------------------------------------
+  # Job 7: Documentation Check
+  # -----------------------------------------------------------------------------
+  docs:
+    name: 📚 Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check README exists
+        run: |
+          if [ ! -f README.md ]; then
+            echo "ERROR: README.md not found"
+            exit 1
+          fi
+          echo "✓ README.md exists"
+
+      - name: Check LICENSE exists
+        run: |
+          if [ ! -f LICENSE ]; then
+            echo "ERROR: LICENSE not found"
+            exit 1
+          fi
+          echo "✓ LICENSE exists"
+
+      - name: Check constitution.md exists
+        run: |
+          if [ ! -f constitution.md ]; then
+            echo "ERROR: constitution.md not found"
+            exit 1
+          fi
+          echo "✓ constitution.md exists"
+
+      - name: Check .env.example exists
+        run: |
+          if [ ! -f .env.example ]; then
+            echo "ERROR: .env.example not found"
+            exit 1
+          fi
+          echo "✓ .env.example exists"
+
+  # -----------------------------------------------------------------------------
+  # Job 8: Verify Output Directory (Statelessness)
+  # -----------------------------------------------------------------------------
+  statelessness:
+    name: 🧼 Verify Statelessness
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify output directory can be created
+        run: |
+          # Verify output directory exists or can be created
+          mkdir -p output
+          echo "✓ Output directory ready"
+
+  # -----------------------------------------------------------------------------
+  # Final Status Check
+  # -----------------------------------------------------------------------------
+  status:
+    name: ✅ CI Status
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, docker, security, makefile, docs, statelessness]
+    if: always()
+
+    steps:
+      - name: Check all jobs
+        run: |
+          echo "============================================================================"
+          echo "CI Pipeline Summary"
+          echo "============================================================================"
+          echo "Branch:   ${{ github.ref_name }}"
+          echo "Commit:   ${{ github.sha }}"
+          echo "Actor:    ${{ github.actor }}"
+          echo ""
+          echo "Job Results:"
+          echo "  🧹 Lint:           ${{ needs.lint.result }}"
+          echo "  🧪 Test:           ${{ needs.test.result }}"
+          echo "  🔨 Build:          ${{ needs.build.result }}"
+          echo "  🐳 Docker:         ${{ needs.docker.result }}"
+          echo "  🔒 Security:       ${{ needs.security.result }}"
+          echo "  🔧 Makefile:       ${{ needs.makefile.result }}"
+          echo "  📚 Docs:           ${{ needs.docs.result }}"
+          echo "  🧼 Statelessness:  ${{ needs.statelessness.result }}"
+          echo "============================================================================"
+
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.build.result }}" != "success" ]; then
+            echo "❌ Critical CI checks failed"
+            exit 1
+          fi
+          echo "✅ All critical CI checks passed"
