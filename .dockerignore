@@ -42,8 +42,8 @@ output/
 !README.md
 docs/
 
-# Test files (excluded from production image)
-tests/
+# Test files (included for CI testing, excluded from production image by Dockerfile)
+# tests/
 coverage/
 .nyc_output/
 

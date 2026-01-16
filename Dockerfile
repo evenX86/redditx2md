@@ -51,6 +51,10 @@ RUN npm test
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS final
 
+# Set build arguments for metadata
+ARG BUILD_DATE
+ARG VERSION=1.0.0
+
 # Set metadata labels
 LABEL org.opencontainers.image.title="redditx2md"
 LABEL org.opencontainers.image.description="Reddit content fetcher and Markdown converter - Production"
