@@ -7,7 +7,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
+# package-lock.json  ← 需要保留，npm ci 依赖它
 
 # Output files (generated at runtime)
 output/
